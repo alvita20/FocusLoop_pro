@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import Complaint, LeaveRecord
-from base.models import Students
+from base.models import Students, Teacher
+from django.db.models import Count
 from datetime import date
 from django.db.models import Q
 
@@ -50,15 +51,15 @@ def student_home_view(request):
 def teacher_home_view(request):
     teacher = request.user.teacher
     complaints = Complaint.objects.all().order_by("-created_at")
-    leave_count = LeaveRecord.objects.filter(student__student_class=teacher.class_assigned).count()
-    complaint_count = Complaint.objects.count()  # Or filter by class/section
+    leave_count = LeaveRecord.objects.filter(student__student_class=teacher.student_class).count()
+    complaint_count = Complaint.objects.filter(student__student_class=teacher.student_class).count()  # Or filter by class/section
 
     return render(request, 'dashboard/teacher_home.html', {
         "teacher": teacher,
         "leave_count": leave_count,
         "complaint_count": complaint_count,
-
-        "complaints": complaints,
+         "complaints": complaints,
+       
     })
 
 # ------------------------------
@@ -88,9 +89,7 @@ def student_complain_view(request):
         return redirect('dashboard:student_complain')
 
 
-    complaints = Complaint.objects.filter(
-        Q(student=student) | Q(student=None)
-    ).order_by("-created_at")
+    complaints = Complaint.objects.filter(student=student).order_by("-created_at")
 
     return render(request, 'dashboard/student_complain.html', {
         'student': student,
@@ -149,7 +148,8 @@ def teacher_leave_view(request):
     teacher = request.user.teacher
     # Filter leave applications for students in the teacher's class
     leave_applications = LeaveRecord.objects.filter(
-        student__student_class=teacher.class_assigned
+        student__student_class=teacher.student_class,
+        student__section=teacher.section
     ).order_by('-created_at')
     
     return render(request, 'dashboard/teacher_leave.html', {
@@ -173,12 +173,18 @@ def teacher_complain_view(request):
     teacher = request.user.teacher
 
     complaints = Complaint.objects.filter(
-        status__in=["Pending", "In Progress"]
+        status__in=["Pending", "In Progress"], 
+        student__student_class=teacher.student_class,
+        student__section = teacher.section
+        
     ).order_by("-created_at")
 
     return render(request, 'dashboard/teacher_complain.html', {
         'complaints': complaints,
         'teacher': teacher,
-        'section': teacher.class_assigned
+        'section': teacher.section,
+        'class_assigned': teacher.student_class,
     })
+
+
 
