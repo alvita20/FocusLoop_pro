@@ -5,6 +5,9 @@ from base.models import Students, Teacher
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 
+class StudentProfile(models.Model):
+    student = models.ForeignKey(Students, on_delete = models.CASCADE)
+
 
 
 
@@ -36,16 +39,20 @@ class LeaveRecord(models.Model):
 
 class Complaint(models.Model):
     student = models.ForeignKey(
-        Students,
+        Students, 
         on_delete=models.SET_NULL,   # change this
         null=True,                   # allow NULL in DB
         blank=True                   # allow empty in form
     )
+    student = models.ForeignKey(Students, on_delete=models.SET_NULL, null=True, blank=True) 
+    student_class = models.CharField(max_length=50, default="")
+    section = models.CharField(max_length=5, default="")
     title = models.CharField(max_length=200)
     category = models.CharField(max_length=100)
     description = models.TextField()
     status = models.CharField(max_length=20, default="Pending")
     created_at = models.DateTimeField(auto_now_add=True)
+   
 
     def __str__(self):
         if self.student:
@@ -77,6 +84,7 @@ def update_complaint_status(request, id):
         complaint.status = request.POST.get("status")
         complaint.save()
     return redirect('dashboard:teacher_home')
+
 
 
 
